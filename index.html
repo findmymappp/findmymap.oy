@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Olive Young Walk Guide with Orientation</title>
+  <title>Olive Young Walk Guide with Sequential Permissions</title>
   <style>
     body, html {
       margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
@@ -71,22 +71,23 @@
       min-height: 32px;
       line-height: 1.3;
     }
-    /* 권한 요청 버튼 스타일 */
-    #permBtn {
+    #permArea {
       position: fixed;
       bottom: 20px;
       right: 20px;
       z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    #permArea button {
       background-color: #ff5722;
-      color: white;
-      border: none;
       border-radius: 6px;
       padding: 12px 16px;
       font-size: 14px;
-      cursor: pointer;
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
-    #permBtn:hover {
+    #permArea button:hover {
       background-color: #e64a19;
     }
   </style>
@@ -113,8 +114,11 @@
 
   <div id="info"></div>
 
-  <!-- 권한 요청 버튼 -->
-  <button id="permBtn">Enable Orientation</button>
+  <!-- 권한 요청 영역 -->
+  <div id="permArea">
+    <button id="locBtn">Enable Location</button>
+    <button id="orientBtn" style="display:none;">Enable Orientation</button>
+  </div>
 
   <script>
     const destinations = [
@@ -211,54 +215,78 @@
     let userOverlayDiv;
 
     function initMap() {
+      // 지도 초기화는 위치 권한이 있어야 가능하므로 위치 허용 후 실행
+    }
+
+    function startWatchPosition() {
       if (!navigator.geolocation) {
         alert("Geolocation not supported.");
         return;
       }
 
-      navigator.geolocation.getCurrentPosition(pos => {
-        userLatLng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+      watchId = navigator.geolocation.watchPosition(
+        pos => {
+          userLatLng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
 
-        map = new kakao.maps.Map(document.getElementById('map'), {
-          center: userLatLng,
-          level: 5
-        });
+          if (!map) {
+            // 최초 위치 수신 시 지도 생성 및 마커 추가
+            map = new kakao.maps.Map(document.getElementById('map'), {
+              center: userLatLng,
+              level: 5
+            });
 
-        // CustomOverlay 생성 (이미지 회전 가능)
-        userOverlayDiv = document.createElement('div');
-        userOverlayDiv.style.width = '32px';
-        userOverlayDiv.style.height = '32px';
-        userOverlayDiv.style.backgroundImage = 'url(https://cdn-icons-png.flaticon.com/512/447/447031.png)';
-        userOverlayDiv.style.backgroundSize = 'contain';
-        userOverlayDiv.style.backgroundRepeat = 'no-repeat';
-        userOverlayDiv.style.transition = 'transform 0.3s ease';
+            userOverlayDiv = document.createElement('div');
+            userOverlayDiv.style.width = '32px';
+            userOverlayDiv.style.height = '32px';
+            userOverlayDiv.style.backgroundImage = 'url(https://cdn-icons-png.flaticon.com/512/447/447031.png)';
+            userOverlayDiv.style.backgroundSize = 'contain';
+            userOverlayDiv.style.backgroundRepeat = 'no-repeat';
+            userOverlayDiv.style.transition = 'transform 0.3s ease';
 
-        userMarker = new kakao.maps.CustomOverlay({
-          position: userLatLng,
-          content: userOverlayDiv,
-          yAnchor: 0.5,
-          xAnchor: 0.5
-        });
+            userMarker = new kakao.maps.CustomOverlay({
+              position: userLatLng,
+              content: userOverlayDiv,
+              yAnchor: 0.5,
+              xAnchor: 0.5
+            });
 
-        userMarker.setMap(map);
+            userMarker.setMap(map);
+          } else {
+            // 지도 이미 생성된 후 위치 갱신
+            userMarker.setPosition(userLatLng);
+            map.setCenter(userLatLng);
+          }
 
-        startWatchPosition();
-        // 기존에는 자동 요청 안함. 권한 버튼 누르면 이벤트 등록됨.
-      }, () => alert("Unable to get location."));
-    }
-
-    function startWatchPosition() {
-      watchId = navigator.geolocation.watchPosition(pos => {
-        userLatLng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
-        userMarker.setPosition(userLatLng);
-
-        if (pos.coords.heading !== null && !isNaN(pos.coords.heading)) {
-          currentHeading = pos.coords.heading;
-          updateMarkerRotation(currentHeading);
-        } else if (deviceHeading !== null) {
-          updateMarkerRotation(deviceHeading);
+          if (pos.coords.heading !== null && !isNaN(pos.coords.heading)) {
+            currentHeading = pos.coords.heading;
+            updateMarkerRotation(currentHeading);
+          } else if (deviceHeading !== null) {
+            updateMarkerRotation(deviceHeading);
+          }
+        },
+        error => {
+          console.error("watchPosition error:", error);
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              alert("Location permission denied.");
+              break;
+            case error.POSITION_UNAVAILABLE:
+              alert("Location information is unavailable.");
+              break;
+            case error.TIMEOUT:
+              alert("Location request timed out.");
+              break;
+            default:
+              alert("Unknown location error.");
+              break;
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 10000
         }
-      }, err => console.error(err), { enableHighAccuracy: true });
+      );
     }
 
     function updateMarkerRotation(angle) {
@@ -273,9 +301,11 @@
         DeviceOrientationEvent.requestPermission()
           .then(response => {
             if (response === 'granted') {
-              alert("Orientation permission granted. Now try rotating your phone.");
+              alert("Orientation permission granted. You can now rotate your device.");
               window.addEventListener('deviceorientation', onDeviceOrientation);
-              document.getElementById('permBtn').style.display = 'none';
+              document.getElementById('orientBtn').style.display = 'none';
+              // 권한 완료 후 버튼 영역 숨기기 (위치 권한도 이미 허용됐으므로)
+              document.getElementById('permArea').style.display = 'none';
             } else {
               alert("Orientation permission denied.");
             }
@@ -284,9 +314,10 @@
             console.error("DeviceOrientation permission error:", err);
           });
       } else {
-        // iOS 이전버전, Android 등
+        // Android 및 iOS 이전 버전
         window.addEventListener('deviceorientation', onDeviceOrientation);
-        document.getElementById('permBtn').style.display = 'none';
+        document.getElementById('orientBtn').style.display = 'none';
+        document.getElementById('permArea').style.display = 'none';
       }
     }
 
@@ -383,10 +414,29 @@
       infoDiv.innerHTML = "";
     }
 
-    // 권한 요청 버튼 이벤트
-    document.getElementById('permBtn').addEventListener('click', requestOrientationPermission);
+    // 버튼 이벤트 연결
+    document.getElementById('locBtn').addEventListener('click', () => {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          alert('Location permission granted!');
+          document.getElementById('locBtn').style.display = 'none';
+          document.getElementById('orientBtn').style.display = 'inline-block';
+          startWatchPosition();
+        },
+        err => {
+          alert('Location permission denied or error.');
+        }
+      );
+    });
 
-    document.addEventListener("DOMContentLoaded", initMap);
+    document.getElementById('orientBtn').addEventListener('click', () => {
+      requestOrientationPermission();
+    });
+
+    // 페이지 로드 시 언어 세팅
+    document.addEventListener("DOMContentLoaded", () => {
+      changeLanguage();
+    });
   </script>
 </body>
 </html>
