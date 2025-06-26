@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>올리브영 길찾기</title>
+  <title>올리브영 길찾기 (하드코딩 경로 샘플)</title>
   <style>
     body {
       margin: 0;
@@ -84,8 +84,8 @@
   <div id="map"></div>
 
   <select id="language" onchange="changeLanguage()">
+    <option value="en" selected>🇺🇸 English</option>
     <option value="ko">🇰🇷 한국어</option>
-    <option value="en">🇺🇸 English</option>
     <option value="zh">🇨🇳 中文</option>
     <option value="ja">🇯🇵 日本語</option>
   </select>
@@ -95,29 +95,57 @@
     <button onclick="setDestination(1)" id="btn1">올리브영 던던동대문점</button>
     <button onclick="setDestination(2)" id="btn2">올리브영 두타점</button>
     <button onclick="setDestination(3)" id="btn3">올리브영 현대시티아울렛동대문점</button>
-    <button onclick="refreshLocation()" id="refresh">현재 위치 갱신</button>
+    <button onclick="refreshLocation()" id="refresh">Refresh location</button>
   </div>
 
   <div id="info"></div>
 
   <script>
     const destinations = [
-      { name: '올리브영 동대문역사문화공원역점', lat: 37.5646, lng: 127.0059 },
-      { name: '올리브영 던던동대문점', lat: 37.5663, lng: 127.0079 },
-      { name: '올리브영 두타점', lat: 37.5667, lng: 127.0072 },
-      { name: '올리브영 현대시티아울렛동대문점', lat: 37.5659, lng: 127.0074 }
+      { 
+        name: '올리브영 동대문역사문화공원역점', 
+        lat: 37.5646, 
+        lng: 127.0059,
+        // 하드코딩 경로 예시 (임의 좌표) - 출발지에서 목적지까지 대략 직선 경로
+        path: [
+          {lat: 37.5646, lng: 127.0059},
+          {lat: 37.5650, lng: 127.0065},
+          {lat: 37.5655, lng: 127.0070}
+        ]
+      },
+      { 
+        name: '올리브영 던던동대문점', 
+        lat: 37.5663, 
+        lng: 127.0079,
+        path: [
+          {lat: 37.5663, lng: 127.0079},
+          {lat: 37.5665, lng: 127.0084},
+          {lat: 37.5667, lng: 127.0088}
+        ]
+      },
+      { 
+        name: '올리브영 두타점', 
+        lat: 37.5667, 
+        lng: 127.0072,
+        path: [
+          {lat: 37.5667, lng: 127.0072},
+          {lat: 37.5670, lng: 127.0075},
+          {lat: 37.5672, lng: 127.0078}
+        ]
+      },
+      { 
+        name: '올리브영 현대시티아울렛동대문점', 
+        lat: 37.5659, 
+        lng: 127.0074,
+        path: [
+          {lat: 37.5659, lng: 127.0074},
+          {lat: 37.5662, lng: 127.0077},
+          {lat: 37.5664, lng: 127.0080}
+        ]
+      }
     ];
 
     const i18n = {
-      ko: {
-        refresh: '현재 위치 갱신',
-        btn0: '올리브영 동대문역사문화공원역점',
-        btn1: '올리브영 던던동대문점',
-        btn2: '올리브영 두타점',
-        btn3: '올리브영 현대시티아울렛동대문점',
-        time: t => `도보 시간: 약 ${t}분`,
-        walkingNotFound: '도보 경로를 찾을 수 없습니다.'
-      },
       en: {
         refresh: 'Refresh location',
         btn0: 'Olive Young DDP History Park',
@@ -125,7 +153,18 @@
         btn2: 'Olive Young Doota',
         btn3: 'Olive Young Hyundai City Outlet',
         time: t => `Estimated walk time: ~${t} min`,
+        dist: d => `Distance: ${d} m`,
         walkingNotFound: 'Walking route not found.'
+      },
+      ko: {
+        refresh: '현재 위치 갱신',
+        btn0: '올리브영 동대문역사문화공원역점',
+        btn1: '올리브영 던던동대문점',
+        btn2: '올리브영 두타점',
+        btn3: '올리브영 현대시티아울렛동대문점',
+        time: t => `도보 시간: 약 ${t}분`,
+        dist: d => `거리: ${d} m`,
+        walkingNotFound: '도보 경로를 찾을 수 없습니다.'
       },
       zh: {
         refresh: '刷新当前位置',
@@ -134,6 +173,7 @@
         btn2: 'Olive Young Doota店',
         btn3: 'Olive Young 现代城市奥特莱斯店',
         time: t => `步行时间：约${t}分钟`,
+        dist: d => `距离：${d} 米`,
         walkingNotFound: '无法找到步行路线。'
       },
       ja: {
@@ -143,6 +183,7 @@
         btn2: 'オリーブヤング ドゥータ店',
         btn3: 'オリーブヤング 現代シティアウトレット店',
         time: t => `徒歩時間：約${t}分`,
+        dist: d => `距離：${d} m`,
         walkingNotFound: '徒歩ルートが見つかりません。'
       }
     };
@@ -176,64 +217,56 @@
         userLatLng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
         map.setCenter(userLatLng);
         if (userMarker) userMarker.setPosition(userLatLng);
-        infoDiv.innerHTML = i18n[document.getElementById("language").value].refresh + " 완료!";
+        const lang = document.getElementById("language").value;
+        infoDiv.innerHTML = i18n[lang].refresh + " 완료!";
       });
     }
 
-    function drawWalkingRoute(origin, destination) {
-      const REST_API_KEY = 'ceb3c41a3c5a54270ff432ca02eb6466'; // 여기에 키 넣음
-      const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${origin.lng},${origin.lat}&destination=${destination.lng},${destination.lat}&priority=RECOMMEND&road_details=true&vehicle_type=FOOT`;
+    // 두 좌표 사이 거리 계산 (미터) - Haversine 공식
+    function getDistance(lat1, lng1, lat2, lng2) {
+      function toRad(deg) {
+        return deg * Math.PI / 180;
+      }
+      const R = 6371000; // 지구 반지름 (m)
+      const dLat = toRad(lat2 - lat1);
+      const dLng = toRad(lng2 - lng1);
+      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return Math.round(R * c);
+    }
 
-      fetch(url, {
-        headers: { Authorization: 'KakaoAK ' + REST_API_KEY }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.routes && data.routes.length > 0) {
-          const route = data.routes[0];
-          const coords = [];
-          route.sections.forEach(section => {
-            section.subPath.forEach(point => {
-              coords.push(new kakao.maps.LatLng(point.y, point.x));
-            });
-          });
+    // 대략 도보 시간 계산 (평균 속도 4km/h = 66.67m/min)
+    function estimateWalkTime(distanceM) {
+      return Math.round(distanceM / 66.67);
+    }
 
-          if (polyline) polyline.setMap(null);
-          polyline = new kakao.maps.Polyline({
-            map: map,
-            path: coords,
-            strokeWeight: 5,
-            strokeColor: '#FF5722',
-            strokeOpacity: 0.8,
-            strokeStyle: 'solid'
-          });
+    function drawHardcodedRoute(pathCoords) {
+      if (polyline) polyline.setMap(null);
 
-          const bounds = new kakao.maps.LatLngBounds();
-          coords.forEach(coord => bounds.extend(coord));
-          map.setBounds(bounds);
+      const kakaoCoords = pathCoords.map(p => new kakao.maps.LatLng(p.lat, p.lng));
 
-          const totalTime = Math.round(route.summary.duration / 60);
-          const lang = i18n[document.getElementById("language").value];
-          infoDiv.innerHTML = `<strong>${destination.name}</strong><br>${lang.time(totalTime)}`;
-
-        } else {
-          infoDiv.innerHTML = i18n[document.getElementById("language").value].walkingNotFound;
-        }
-      })
-      .catch(err => {
-        console.error('길찾기 API 에러:', err);
-        infoDiv.innerHTML = '길찾기 정보를 불러오지 못했습니다.';
+      polyline = new kakao.maps.Polyline({
+        map: map,
+        path: kakaoCoords,
+        strokeWeight: 5,
+        strokeColor: '#FF5722',
+        strokeOpacity: 0.8,
+        strokeStyle: 'solid'
       });
+
+      const bounds = new kakao.maps.LatLngBounds();
+      kakaoCoords.forEach(coord => bounds.extend(coord));
+      map.setBounds(bounds);
     }
 
     function setDestination(index) {
-      const dest = destinations[index];
-      const destLatLng = new kakao.maps.LatLng(dest.lat, dest.lng);
-
       if (!userLatLng) {
         alert("현재 위치를 먼저 불러와 주세요.");
         return;
       }
+
+      const dest = destinations[index];
+      const destLatLng = new kakao.maps.LatLng(dest.lat, dest.lng);
 
       if (destMarker) destMarker.setMap(null);
       if (polyline) polyline.setMap(null);
@@ -244,16 +277,24 @@
         title: dest.name
       });
 
-      drawWalkingRoute(userLatLng, destLatLng);
+      // 경로 그리기 (하드코딩된 경로 사용)
+      drawHardcodedRoute(dest.path);
+
+      // 거리와 예상 시간 계산
+      const distM = getDistance(userLatLng.getLat(), userLatLng.getLng(), dest.lat, dest.lng);
+      const walkTime = estimateWalkTime(distM);
+      const lang = document.getElementById("language").value;
+
+      infoDiv.innerHTML = `<strong>${dest.name}</strong><br>${i18n[lang].dist(distM)}<br>${i18n[lang].time(walkTime)}`;
     }
 
     function changeLanguage() {
-      const lang = i18n[document.getElementById("language").value];
-      document.getElementById("btn0").innerText = lang.btn0;
-      document.getElementById("btn1").innerText = lang.btn1;
-      document.getElementById("btn2").innerText = lang.btn2;
-      document.getElementById("btn3").innerText = lang.btn3;
-      document.getElementById("refresh").innerText = lang.refresh;
+      const lang = document.getElementById("language").value;
+      document.getElementById("btn0").innerText = i18n[lang].btn0;
+      document.getElementById("btn1").innerText = i18n[lang].btn1;
+      document.getElementById("btn2").innerText = i18n[lang].btn2;
+      document.getElementById("btn3").innerText = i18n[lang].btn3;
+      document.getElementById("refresh").innerText = i18n[lang].refresh;
       infoDiv.innerHTML = "";
     }
 
