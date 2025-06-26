@@ -180,9 +180,8 @@
       });
     }
 
-    // 길찾기 REST API를 사용한 도보 경로 그리기
     function drawWalkingRoute(origin, destination) {
-      const REST_API_KEY = 'YOUR_REST_API_KEY_HERE'; // 발급받은 REST API 키 입력
+      const REST_API_KEY = 'ceb3c41a3c5a54270ff432ca02eb6466'; // 여기에 키 넣음
       const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${origin.lng},${origin.lat}&destination=${destination.lng},${destination.lat}&priority=RECOMMEND&road_details=true&vehicle_type=FOOT`;
 
       fetch(url, {
