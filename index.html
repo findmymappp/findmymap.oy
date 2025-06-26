@@ -11,6 +11,7 @@
       font-family: sans-serif;
       background: #f5f5f5;
     }
+
     #language {
       position: fixed;
       top: 12px;
@@ -23,12 +24,14 @@
       background-color: white;
       box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
+
     .buttons {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       padding: 10px 12px;
     }
+
     button {
       flex: 1 1 45%;
       background-color: #4caf50;
@@ -40,31 +43,37 @@
       cursor: pointer;
       transition: background-color 0.3s ease;
     }
+
     button:hover {
       background-color: #388e3c;
     }
+
     #refresh {
       background-color: #2196f3;
     }
+
     #refresh:hover {
       background-color: #1565c0;
     }
+
     #info {
       padding: 0 12px 10px;
       font-size: 14px;
       color: #333;
     }
+
     #map {
       width: 100%;
-      height: 400px;
+      height: 500px;
+      background: #eee;
       border-radius: 10px;
       border: 1px solid #ccc;
     }
   </style>
+
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=7984bae577e26f048c7b8608f9008187&libraries=services,geometry"></script>
 </head>
 <body>
-  <!-- 언어 선택 -->
   <select id="language" onchange="changeLanguage()">
     <option value="ko">🇰🇷 한국어</option>
     <option value="en">🇺🇸 English</option>
@@ -72,7 +81,6 @@
     <option value="ja">🇯🇵 日本語</option>
   </select>
 
-  <!-- 목적지 버튼 -->
   <div class="buttons" id="buttons">
     <button onclick="setDestination(0)" id="btn0">올리브영 동대문역사문화공원역점</button>
     <button onclick="setDestination(1)" id="btn1">올리브영 던던동대문점</button>
@@ -81,10 +89,8 @@
     <button onclick="refreshLocation()" id="refresh">현재 위치 갱신</button>
   </div>
 
-  <!-- 거리/시간 표시 -->
   <div id="info"></div>
 
-  <!-- 지도 -->
   <div id="map"></div>
 
   <script>
@@ -102,7 +108,6 @@
         btn1: '올리브영 던던동대문점',
         btn2: '올리브영 두타점',
         btn3: '올리브영 현대시티아울렛동대문점',
-        distance: d => `거리: ${d}m`,
         time: t => `도보 시간: 약 ${t}분`
       },
       en: {
@@ -111,7 +116,6 @@
         btn1: 'Olive Young Dundun Dongdaemun',
         btn2: 'Olive Young Doota',
         btn3: 'Olive Young Hyundai City Outlet',
-        distance: d => `Distance: ${d}m`,
         time: t => `Estimated walk time: ~${t} min`
       },
       zh: {
@@ -120,7 +124,6 @@
         btn1: 'Olive Young 敦敦东大门店',
         btn2: 'Olive Young Doota店',
         btn3: 'Olive Young 现代城市奥特莱斯店',
-        distance: d => `距离：${d}米`,
         time: t => `步行时间：约${t}分钟`
       },
       ja: {
@@ -129,7 +132,6 @@
         btn1: 'オリーブヤング ダンダンドンデムン店',
         btn2: 'オリーブヤング ドゥータ店',
         btn3: 'オリーブヤング 現代シティアウトレット店',
-        distance: d => `距離：${d}m`,
         time: t => `徒歩時間：約${t}分`
       }
     };
@@ -138,14 +140,25 @@
     const infoDiv = document.getElementById('info');
 
     function initMap() {
+      if (!navigator.geolocation) {
+        alert("이 브라우저는 위치 정보를 지원하지 않습니다.");
+        return;
+      }
+
       navigator.geolocation.getCurrentPosition(pos => {
         userLatLng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
         map = new kakao.maps.Map(document.getElementById('map'), {
           center: userLatLng,
           level: 5
         });
-        userMarker = new kakao.maps.Marker({ map, position: userLatLng, title: "현재 위치" });
-      }, () => alert("위치 정보를 불러올 수 없습니다."));
+        userMarker = new kakao.maps.Marker({
+          map,
+          position: userLatLng,
+          title: "현재 위치"
+        });
+      }, () => {
+        alert("위치 정보를 불러올 수 없습니다.");
+      });
     }
 
     function refreshLocation() {
@@ -161,12 +174,21 @@
       const dest = destinations[index];
       const destLatLng = new kakao.maps.LatLng(dest.lat, dest.lng);
 
+      if (!userLatLng) {
+        alert("현재 위치를 먼저 불러와 주세요.");
+        return;
+      }
+
       if (destMarker) destMarker.setMap(null);
       if (polyline) polyline.setMap(null);
 
-      destMarker = new kakao.maps.Marker({ map, position: destLatLng, title: dest.name });
+      destMarker = new kakao.maps.Marker({
+        map,
+        position: destLatLng,
+        title: dest.name
+      });
 
-      const distance = Math.round(kakao.maps.geometry.spherical.computeDistance(userLatLng, destLatLng)); // m
+      const distance = kakao.maps.geometry.spherical.computeDistance(userLatLng, destLatLng);
       const time = Math.round(distance / 66); // 평균 도보속도 66m/min
 
       polyline = new kakao.maps.Polyline({
@@ -184,9 +206,7 @@
       map.setBounds(bounds);
 
       const lang = i18n[document.getElementById("language").value];
-      infoDiv.innerHTML = `<strong>${dest.name}</strong><br>
-        ${lang.distance(distance)}<br>
-        ${lang.time(time)}`;
+      infoDiv.innerHTML = `<strong>${dest.name}</strong><br>${lang.time(time)}`;
     }
 
     function changeLanguage() {
@@ -199,7 +219,7 @@
       infoDiv.innerHTML = "";
     }
 
-    window.onload = initMap;
+    document.addEventListener("DOMContentLoaded", initMap);
   </script>
 </body>
 </html>
