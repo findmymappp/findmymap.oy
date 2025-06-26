@@ -8,72 +8,81 @@
     body {
       margin: 0;
       padding: 0;
-      font-family: sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+        Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
       background: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      position: relative;
     }
-
+    #map {
+      width: 100%;
+      height: 450px;
+      background: #eee;
+      border-bottom: 1px solid #ccc;
+      flex-shrink: 0;
+    }
     #language {
       position: fixed;
       top: 12px;
       right: 12px;
       z-index: 1000;
-      padding: 6px 10px;
       font-size: 14px;
+      padding: 6px 10px;
       border-radius: 6px;
       border: 1px solid #ccc;
       background-color: white;
       box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      width: 160px;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      cursor: pointer;
     }
-
     .buttons {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      padding: 10px 12px;
+      gap: 10px;
+      padding: 10px 12px 15px;
+      margin-top: 10px;
     }
-
     button {
       flex: 1 1 45%;
       background-color: #4caf50;
       color: white;
       border: none;
       border-radius: 6px;
-      padding: 10px;
+      padding: 12px 8px;
       font-size: 15px;
       cursor: pointer;
       transition: background-color 0.3s ease;
+      min-width: 120px;
     }
-
     button:hover {
       background-color: #388e3c;
     }
-
     #refresh {
       background-color: #2196f3;
+      flex: 1 1 100%;
     }
-
     #refresh:hover {
       background-color: #1565c0;
     }
-
     #info {
-      padding: 0 12px 10px;
+      padding: 0 12px 15px;
       font-size: 14px;
       color: #333;
-    }
-
-    #map {
-      width: 100%;
-      height: 500px;
-      background: #eee;
-      border-radius: 10px;
-      border: 1px solid #ccc;
+      min-height: 32px;
+      line-height: 1.3;
     }
   </style>
 
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=7984bae577e26f048c7b8608f9008187&libraries=services,geometry"></script>
 </head>
 <body>
+  <div id="map"></div>
+
   <select id="language" onchange="changeLanguage()">
     <option value="ko">🇰🇷 한국어</option>
     <option value="en">🇺🇸 English</option>
@@ -91,8 +100,6 @@
 
   <div id="info"></div>
 
-  <div id="map"></div>
-
   <script>
     const destinations = [
       { name: '올리브영 동대문역사문화공원역점', lat: 37.5646, lng: 127.0059 },
@@ -108,7 +115,8 @@
         btn1: '올리브영 던던동대문점',
         btn2: '올리브영 두타점',
         btn3: '올리브영 현대시티아울렛동대문점',
-        time: t => `도보 시간: 약 ${t}분`
+        time: t => `도보 시간: 약 ${t}분`,
+        walkingNotFound: '도보 경로를 찾을 수 없습니다.'
       },
       en: {
         refresh: 'Refresh location',
@@ -116,7 +124,8 @@
         btn1: 'Olive Young Dundun Dongdaemun',
         btn2: 'Olive Young Doota',
         btn3: 'Olive Young Hyundai City Outlet',
-        time: t => `Estimated walk time: ~${t} min`
+        time: t => `Estimated walk time: ~${t} min`,
+        walkingNotFound: 'Walking route not found.'
       },
       zh: {
         refresh: '刷新当前位置',
@@ -124,7 +133,8 @@
         btn1: 'Olive Young 敦敦东大门店',
         btn2: 'Olive Young Doota店',
         btn3: 'Olive Young 现代城市奥特莱斯店',
-        time: t => `步行时间：约${t}分钟`
+        time: t => `步行时间：约${t}分钟`,
+        walkingNotFound: '无法找到步行路线。'
       },
       ja: {
         refresh: '現在地を更新',
@@ -132,7 +142,8 @@
         btn1: 'オリーブヤング ダンダンドンデムン店',
         btn2: 'オリーブヤング ドゥータ店',
         btn3: 'オリーブヤング 現代シティアウトレット店',
-        time: t => `徒歩時間：約${t}分`
+        time: t => `徒歩時間：約${t}分`,
+        walkingNotFound: '徒歩ルートが見つかりません。'
       }
     };
 
@@ -144,7 +155,6 @@
         alert("이 브라우저는 위치 정보를 지원하지 않습니다.");
         return;
       }
-
       navigator.geolocation.getCurrentPosition(pos => {
         userLatLng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
         map = new kakao.maps.Map(document.getElementById('map'), {
@@ -165,8 +175,55 @@
       navigator.geolocation.getCurrentPosition(pos => {
         userLatLng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
         map.setCenter(userLatLng);
-        userMarker.setPosition(userLatLng);
+        if (userMarker) userMarker.setPosition(userLatLng);
         infoDiv.innerHTML = i18n[document.getElementById("language").value].refresh + " 완료!";
+      });
+    }
+
+    // 길찾기 REST API를 사용한 도보 경로 그리기
+    function drawWalkingRoute(origin, destination) {
+      const REST_API_KEY = 'YOUR_REST_API_KEY_HERE'; // 발급받은 REST API 키 입력
+      const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${origin.lng},${origin.lat}&destination=${destination.lng},${destination.lat}&priority=RECOMMEND&road_details=true&vehicle_type=FOOT`;
+
+      fetch(url, {
+        headers: { Authorization: 'KakaoAK ' + REST_API_KEY }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.routes && data.routes.length > 0) {
+          const route = data.routes[0];
+          const coords = [];
+          route.sections.forEach(section => {
+            section.subPath.forEach(point => {
+              coords.push(new kakao.maps.LatLng(point.y, point.x));
+            });
+          });
+
+          if (polyline) polyline.setMap(null);
+          polyline = new kakao.maps.Polyline({
+            map: map,
+            path: coords,
+            strokeWeight: 5,
+            strokeColor: '#FF5722',
+            strokeOpacity: 0.8,
+            strokeStyle: 'solid'
+          });
+
+          const bounds = new kakao.maps.LatLngBounds();
+          coords.forEach(coord => bounds.extend(coord));
+          map.setBounds(bounds);
+
+          const totalTime = Math.round(route.summary.duration / 60);
+          const lang = i18n[document.getElementById("language").value];
+          infoDiv.innerHTML = `<strong>${destination.name}</strong><br>${lang.time(totalTime)}`;
+
+        } else {
+          infoDiv.innerHTML = i18n[document.getElementById("language").value].walkingNotFound;
+        }
+      })
+      .catch(err => {
+        console.error('길찾기 API 에러:', err);
+        infoDiv.innerHTML = '길찾기 정보를 불러오지 못했습니다.';
       });
     }
 
@@ -188,25 +245,7 @@
         title: dest.name
       });
 
-      const distance = kakao.maps.geometry.spherical.computeDistance(userLatLng, destLatLng);
-      const time = Math.round(distance / 66); // 평균 도보속도 66m/min
-
-      polyline = new kakao.maps.Polyline({
-        map: map,
-        path: [userLatLng, destLatLng],
-        strokeWeight: 4,
-        strokeColor: '#FF5722',
-        strokeOpacity: 0.8,
-        strokeStyle: 'solid'
-      });
-
-      const bounds = new kakao.maps.LatLngBounds();
-      bounds.extend(userLatLng);
-      bounds.extend(destLatLng);
-      map.setBounds(bounds);
-
-      const lang = i18n[document.getElementById("language").value];
-      infoDiv.innerHTML = `<strong>${dest.name}</strong><br>${lang.time(time)}`;
+      drawWalkingRoute(userLatLng, destLatLng);
     }
 
     function changeLanguage() {
