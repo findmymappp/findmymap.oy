@@ -18,7 +18,7 @@
     }
     #map {
       width: 100%;
-      height: 450px;
+      height: 350px; /* 줄임 */
       background: #eee;
       border-bottom: 1px solid #ccc;
       flex-shrink: 0;
@@ -226,7 +226,7 @@
         (pos) => {
           userLatLng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
           if (userMarker) userMarker.setPosition(userLatLng);
-          // 지도 중심은 위치 갱신 버튼 클릭 시만 이동하도록 할 수도 있음
+          // 필요하면 지도 중심 이동도 가능
           // map.setCenter(userLatLng);
         },
         (err) => {
@@ -284,6 +284,8 @@
 
       const bounds = new kakao.maps.LatLngBounds();
       kakaoCoords.forEach(coord => bounds.extend(coord));
+      if(userLatLng) bounds.extend(userLatLng); // 사용자 위치 포함
+
       map.setBounds(bounds);
     }
 
