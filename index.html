@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>올리브영 길찾기</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      background: #f5f5f5;
+    }
+    #language {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 1000;
+      padding: 6px 10px;
+      font-size: 14px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background-color: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 12px;
+    }
+    button {
+      flex: 1 1 45%;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #388e3c;
+    }
+    #refresh {
+      background-color: #2196f3;
+    }
+    #refresh:hover {
+      background-color: #1565c0;
+    }
+    #info {
+      padding: 0 12px 10px;
+      font-size: 14px;
+      color: #333;
+    }
+    #map {
+      width: 100%;
+      height: 400px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+    }
+  </style>
+  <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=7984bae577e26f048c7b8608f9008187&libraries=services,geometry"></script>
+</head>
+<body>
+  <!-- 언어 선택 -->
+  <select id="language" onchange="changeLanguage()">
+    <option value="ko">🇰🇷 한국어</option>
+    <option value="en">🇺🇸 English</option>
+    <option value="zh">🇨🇳 中文</option>
+    <option value="ja">🇯🇵 日本語</option>
+  </select>
+
+  <!-- 목적지 버튼 -->
+  <div class="buttons" id="buttons">
+    <button onclick="setDestination(0)" id="btn0">올리브영 동대문역사문화공원역점</button>
+    <button onclick="setDestination(1)" id="btn1">올리브영 던던동대문점</button>
+    <button onclick="setDestination(2)" id="btn2">올리브영 두타점</button>
+    <button onclick="setDestination(3)" id="btn3">올리브영 현대시티아울렛동대문점</button>
+    <button onclick="refreshLocation()" id="refresh">현재 위치 갱신</button>
+  </div>
+
+  <!-- 거리/시간 표시 -->
+  <div id="info"></div>
+
+  <!-- 지도 -->
+  <div id="map"></div>
+
+  <script>
+    const destinations = [
+      { name: '올리브영 동대문역사문화공원역점', lat: 37.5646, lng: 127.0059 },
+      { name: '올리브영 던던동대문점', lat: 37.5663, lng: 127.0079 },
+      { name: '올리브영 두타점', lat: 37.5667, lng: 127.0072 },
+      { name: '올리브영 현대시티아울렛동대문점', lat: 37.5659, lng: 127.0074 }
+    ];
+
+    const i18n = {
+      ko: {
+        refresh: '현재 위치 갱신',
+        btn0: '올리브영 동대문역사문화공원역점',
+        btn1: '올리브영 던던동대문점',
+        btn2: '올리브영 두타점',
+        btn3: '올리브영 현대시티아울렛동대문점',
+        distance: d => `거리: ${d}m`,
+        time: t => `도보 시간: 약 ${t}분`
+      },
+      en: {
+        refresh: 'Refresh location',
+        btn0: 'Olive Young DDP History Park',
+        btn1: 'Olive Young Dundun Dongdaemun',
+        btn2: 'Olive Young Doota',
+        btn3: 'Olive Young Hyundai City Outlet',
+        distance: d => `Distance: ${d}m`,
+        time: t => `Estimated walk time: ~${t} min`
+      },
+      zh: {
+        refresh: '刷新当前位置',
+        btn0: 'Olive Young 东大门历史文化公园店',
+        btn1: 'Olive Young 敦敦东大门店',
+        btn2: 'Olive Young Doota店',
+        btn3: 'Olive Young 现代城市奥特莱斯店',
+        distance: d => `距离：${d}米`,
+        time: t => `步行时间：约${t}分钟`
+      },
+      ja: {
+        refresh: '現在地を更新',
+        btn0: 'オリーブヤング 東大門歴史文化公園店',
+        btn1: 'オリーブヤング ダンダンドンデムン店',
+        btn2: 'オリーブヤング ドゥータ店',
+        btn3: 'オリーブヤング 現代シティアウトレット店',
+        distance: d => `距離：${d}m`,
+        time: t => `徒歩時間：約${t}分`
+      }
+    };
+
+    let map, userLatLng, userMarker, destMarker, polyline;
+    const infoDiv = document.getElementById('info');
+
+    function initMap() {
+      navigator.geolocation.getCurrentPosition(pos => {
+        userLatLng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+        map = new kakao.maps.Map(document.getElementById('map'), {
+          center: userLatLng,
+          level: 5
+        });
+        userMarker = new kakao.maps.Marker({ map, position: userLatLng, title: "현재 위치" });
+      }, () => alert("위치 정보를 불러올 수 없습니다."));
+    }
+
+    function refreshLocation() {
+      navigator.geolocation.getCurrentPosition(pos => {
+        userLatLng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+        map.setCenter(userLatLng);
+        userMarker.setPosition(userLatLng);
+        infoDiv.innerHTML = i18n[document.getElementById("language").value].refresh + " 완료!";
+      });
+    }
+
+    function setDestination(index) {
+      const dest = destinations[index];
+      const destLatLng = new kakao.maps.LatLng(dest.lat, dest.lng);
+
+      if (destMarker) destMarker.setMap(null);
+      if (polyline) polyline.setMap(null);
+
+      destMarker = new kakao.maps.Marker({ map, position: destLatLng, title: dest.name });
+
+      const distance = Math.round(kakao.maps.geometry.spherical.computeDistance(userLatLng, destLatLng)); // m
+      const time = Math.round(distance / 66); // 평균 도보속도 66m/min
+
+      polyline = new kakao.maps.Polyline({
+        map: map,
+        path: [userLatLng, destLatLng],
+        strokeWeight: 4,
+        strokeColor: '#FF5722',
+        strokeOpacity: 0.8,
+        strokeStyle: 'solid'
+      });
+
+      const bounds = new kakao.maps.LatLngBounds();
+      bounds.extend(userLatLng);
+      bounds.extend(destLatLng);
+      map.setBounds(bounds);
+
+      const lang = i18n[document.getElementById("language").value];
+      infoDiv.innerHTML = `<strong>${dest.name}</strong><br>
+        ${lang.distance(distance)}<br>
+        ${lang.time(time)}`;
+    }
+
+    function changeLanguage() {
+      const lang = i18n[document.getElementById("language").value];
+      document.getElementById("btn0").innerText = lang.btn0;
+      document.getElementById("btn1").innerText = lang.btn1;
+      document.getElementById("btn2").innerText = lang.btn2;
+      document.getElementById("btn3").innerText = lang.btn3;
+      document.getElementById("refresh").innerText = lang.refresh;
+      infoDiv.innerHTML = "";
+    }
+
+    window.onload = initMap;
+  </script>
+</body>
+</html>
