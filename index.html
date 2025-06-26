@@ -249,12 +249,11 @@
       }
     }
 
-    // 거리 계산 (미터)
     function getDistance(lat1, lng1, lat2, lng2) {
       function toRad(deg) {
         return deg * Math.PI / 180;
       }
-      const R = 6371000; // meters
+      const R = 6371000;
       const dLat = toRad(lat2 - lat1);
       const dLng = toRad(lng2 - lng1);
       const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
@@ -266,10 +265,8 @@
       return Math.round(distanceM / 66.67);
     }
 
-    // 카카오 길찾기 서비스 객체
     const walkingService = new kakao.maps.services.WalkingRoute();
 
-    // 목적지 설정 + 길찾기 API 호출하여 경로 표시
     function setDestination(index) {
       if (!userLatLng) {
         alert("Please wait for your current location.");
@@ -288,34 +285,47 @@
         title: dest.name
       });
 
-      // 길찾기 API 요청
-      walkingService.route(
-        new kakao.maps.services.LatLng(userLatLng.getLat(), userLatLng.getLng()),
-        destLatLng,
-        (result, status) => {
-          if (status === kakao.maps.services.Status.OK) {
-            displayRoute(result);
-            const distM = getDistance(userLatLng.getLat(), userLatLng.getLng(), dest.lat, dest.lng);
-            const walkTime = estimateWalkTime(distM);
-            const lang = document.getElementById("language").value;
+      try {
+        walkingService.route(
+          new kakao.maps.services.LatLng(userLatLng.getLat(), userLatLng.getLng()),
+          destLatLng,
+          (result, status) => {
+            try {
+              if (status === kakao.maps.services.Status.OK) {
+                displayRoute(result);
+                const distM = getDistance(userLatLng.getLat(), userLatLng.getLng(), dest.lat, dest.lng);
+                const walkTime = estimateWalkTime(distM);
+                const lang = document.getElementById("language").value;
 
-            infoDiv.innerHTML = `<strong>${dest.name}</strong><br>${i18n[lang].dist(distM)}<br>${i18n[lang].time(walkTime)}`;
-          } else {
-            const lang = document.getElementById("language").value;
-            infoDiv.innerHTML = `<strong>${dest.name}</strong><br><em>${i18n[lang].walkingNotFound}</em>`;
+                infoDiv.innerHTML = `<strong>${dest.name}</strong><br>${i18n[lang].dist(distM)}<br>${i18n[lang].time(walkTime)}`;
+              } else {
+                const lang = document.getElementById("language").value;
+                infoDiv.innerHTML = `<strong>${dest.name}</strong><br><em>${i18n[lang].walkingNotFound}</em>`;
+              }
+            } catch(e) {
+              console.error("Walking route callback error:", e);
+              infoDiv.innerHTML = "Error fetching route.";
+            }
           }
-        }
-      );
+        );
+      } catch(e) {
+        console.error("walkingService.route error:", e);
+      }
     }
 
-    // 경로를 지도에 폴리라인으로 표시
     function displayRoute(routes) {
+      if (!routes || routes.length === 0) return;
+
       if(polyline) polyline.setMap(null);
 
       const path = [];
       routes.forEach(route => {
-        route.path.forEach(latlng => path.push(latlng));
+        if (route.path && route.path.length > 0) {
+          route.path.forEach(latlng => path.push(latlng));
+        }
       });
+
+      if (path.length === 0) return;
 
       polyline = new kakao.maps.Polyline({
         path: path,
@@ -326,7 +336,6 @@
         map: map
       });
 
-      // 경로가 잘 보이도록 지도 영역 조정
       const bounds = new kakao.maps.LatLngBounds();
       path.forEach(latlng => bounds.extend(latlng));
       if(userLatLng) bounds.extend(userLatLng);
