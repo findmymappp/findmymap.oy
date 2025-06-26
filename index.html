@@ -6,8 +6,7 @@
   <title>Olive Young Walk Guide</title>
   <style>
     body {
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
         Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
       background: #f5f5f5;
@@ -27,7 +26,7 @@
       position: fixed;
       top: 12px;
       right: 12px;
-      z-index: 1000;
+      z-index: 10000;
       font-size: 14px;
       padding: 6px 10px;
       border-radius: 6px;
@@ -73,8 +72,19 @@
       padding: 0 12px 15px;
       font-size: 14px;
       color: #333;
-      min-height: 32px;
+      min-height: 40px;
       line-height: 1.3;
+    }
+
+    /* 커스텀 방향 마커 CSS */
+    .user-arrow-marker {
+      width: 36px;
+      height: 36px;
+      background: url("https://cdn-icons-png.flaticon.com/512/60/60995.png") no-repeat center center;
+      background-size: contain;
+      transform-origin: 50% 50%;
+      transition: transform 0.3s ease-out;
+      pointer-events: none;
     }
   </style>
 
@@ -91,242 +101,271 @@
   </select>
 
   <div class="buttons" id="buttons">
-    <button onclick="setDestination(0)" id="btn0">Olive Young Dongdaemun History Park 1F</button>
-    <button onclick="setDestination(1)" id="btn1">Olive Young Dundun Dongdaemun B2F</button>
-    <button onclick="setDestination(2)" id="btn2">Olive Young Doota B2F</button>
-    <button onclick="setDestination(3)" id="btn3">Olive Young Hyundai City Outlet 2F</button>
+    <button onclick="setDestination(0)" id="btn0">Olive Young DDP History Park</button>
+    <button onclick="setDestination(1)" id="btn1">Olive Young Dundun Dongdaemun</button>
+    <button onclick="setDestination(2)" id="btn2">Olive Young Doota</button>
+    <button onclick="setDestination(3)" id="btn3">Olive Young Hyundai City Outlet</button>
     <button onclick="refreshLocation()" id="refresh">Refresh location</button>
   </div>
 
   <div id="info"></div>
 
-  <script>
-    const destinations = [
-      { 
-        name: '올리브영 동대문역사문화공원역점 1F', 
-        lat: 37.567081, 
-        lng: 127.008034,
-        path: [
-          {lat: 37.567081, lng: 127.008034},
-          {lat: 37.5673, lng: 127.0082},
-          {lat: 37.5675, lng: 127.0084}
-        ]
-      },
-      { 
-        name: '올리브영 던던동대문점 B2F', 
-        lat: 37.565869, 
-        lng: 127.007215,
-        path: [
-          {lat: 37.565869, lng: 127.007215},
-          {lat: 37.5660, lng: 127.0074},
-          {lat: 37.5662, lng: 127.0076}
-        ]
-      },
-      { 
-        name: '올리브영 두타점 B2F', 
-        lat: 37.568779, 
-        lng: 127.008892,
-        path: [
-          {lat: 37.568779, lng: 127.008892},
-          {lat: 37.5690, lng: 127.0090},
-          {lat: 37.5692, lng: 127.0092}
-        ]
-      },
-      { 
-        name: '올리브영 현대시티아울렛점 2F', 
-        lat: 37.568720, 
-        lng: 127.008003,
-        path: [
-          {lat: 37.568720, lng: 127.008003},
-          {lat: 37.5689, lng: 127.0082},
-          {lat: 37.5691, lng: 127.0084}
-        ]
-      }
-    ];
+<script>
+  const destinations = [
+    { 
+      name: 'Olive Young DDP History Park', 
+      lat: 37.567081, 
+      lng: 127.008034,
+      path: [
+        {lat: 37.567081, lng: 127.008034},
+        {lat: 37.5673, lng: 127.0082},
+        {lat: 37.5675, lng: 127.0083}
+      ]
+    },
+    { 
+      name: 'Olive Young Dundun Dongdaemun', 
+      lat: 37.565869, 
+      lng: 127.007215,
+      path: [
+        {lat: 37.565869, lng: 127.007215},
+        {lat: 37.5660, lng: 127.0074},
+        {lat: 37.5663, lng: 127.0077}
+      ]
+    },
+    { 
+      name: 'Olive Young Doota', 
+      lat: 37.568779, 
+      lng: 127.008892,
+      path: [
+        {lat: 37.568779, lng: 127.008892},
+        {lat: 37.5690, lng: 127.0090},
+        {lat: 37.5693, lng: 127.0092}
+      ]
+    },
+    { 
+      name: 'Olive Young Hyundai City Outlet', 
+      lat: 37.568720, 
+      lng: 127.008003,
+      path: [
+        {lat: 37.568720, lng: 127.008003},
+        {lat: 37.5690, lng: 127.0081},
+        {lat: 37.5692, lng: 127.0083}
+      ]
+    }
+  ];
 
-    const i18n = {
-      en: {
-        refresh: 'Refresh location',
-        btn0: 'Olive Young Dongdaemun History Park 1F',
-        btn1: 'Olive Young Dundun Dongdaemun B2F',
-        btn2: 'Olive Young Doota B2F',
-        btn3: 'Olive Young Hyundai City Outlet 2F',
-        time: t => `Estimated walk time: ~${t} min`,
-        dist: d => `Distance: ${d} m`,
-        walkingNotFound: 'Walking route not found.'
-      },
-      ko: {
-        refresh: '현재 위치 갱신',
-        btn0: '올리브영 동대문역사문화공원역점 1F',
-        btn1: '올리브영 던던동대문점 B2F',
-        btn2: '올리브영 두타점 B2F',
-        btn3: '올리브영 현대시티아울렛점 2F',
-        time: t => `도보 시간: 약 ${t}분`,
-        dist: d => `거리: ${d} m`,
-        walkingNotFound: '도보 경로를 찾을 수 없습니다.'
-      },
-      zh: {
-        refresh: '刷新当前位置',
-        btn0: 'Olive Young 东大门历史文化公园店 1F',
-        btn1: 'Olive Young 敦敦东大门店 B2F',
-        btn2: 'Olive Young Doota店 B2F',
-        btn3: 'Olive Young 现代城市奥特莱斯店 2F',
-        time: t => `步行时间：约${t}分钟`,
-        dist: d => `距离：${d} 米`,
-        walkingNotFound: '无法找到步行路线。'
-      },
-      ja: {
-        refresh: '現在地を更新',
-        btn0: 'オリーブヤング 東大門歴史文化公園店 1F',
-        btn1: 'オリーブヤング ダンダンドンデムン店 B2F',
-        btn2: 'オリーブヤング ドゥータ店 B2F',
-        btn3: 'オリーブヤング 現代シティアウトレット店 2F',
-        time: t => `徒歩時間：約${t}分`,
-        dist: d => `距離：${d} m`,
-        walkingNotFound: '徒歩ルートが見つかりません。'
-      }
-    };
+  const i18n = {
+    en: {
+      refresh: 'Refresh location',
+      btn0: 'Olive Young DDP History Park',
+      btn1: 'Olive Young Dundun Dongdaemun',
+      btn2: 'Olive Young Doota',
+      btn3: 'Olive Young Hyundai City Outlet',
+      time: t => `Estimated walk time: ~${t} min`,
+      dist: d => `Distance: ${d} m`,
+      walkingNotFound: 'Walking route not found.'
+    },
+    ko: {
+      refresh: '현재 위치 갱신',
+      btn0: '올리브영 동대문역사문화공원역점',
+      btn1: '올리브영 던던동대문점',
+      btn2: '올리브영 두타점',
+      btn3: '올리브영 현대시티아울렛동대문점',
+      time: t => `도보 시간: 약 ${t}분`,
+      dist: d => `거리: ${d} m`,
+      walkingNotFound: '도보 경로를 찾을 수 없습니다.'
+    },
+    zh: {
+      refresh: '刷新当前位置',
+      btn0: 'Olive Young 东大门历史文化公园店',
+      btn1: 'Olive Young 敦敦东大门店',
+      btn2: 'Olive Young Doota店',
+      btn3: 'Olive Young 现代城市奥特莱斯店',
+      time: t => `步行时间：约${t}分钟`,
+      dist: d => `距离：${d} 米`,
+      walkingNotFound: '无法找到步行路线。'
+    },
+    ja: {
+      refresh: '現在地を更新',
+      btn0: 'オリーブヤング 東大門歴史文化公園店',
+      btn1: 'オリーブヤング ダンダンドンデムン店',
+      btn2: 'オリーブヤング ドゥータ店',
+      btn3: 'オリーブヤング 現代シティアウトレット店',
+      time: t => `徒歩時間：約${t}分`,
+      dist: d => `距離：${d} m`,
+      walkingNotFound: '徒歩ルートが見つかりません。'
+    }
+  };
 
-    let map, userLatLng, userMarker, destMarker, polyline;
-    const infoDiv = document.getElementById('info');
-    let watchId;
+  let map, userLatLng, userMarker, destMarker, polyline;
+  const infoDiv = document.getElementById('info');
+  let watchId;
+  let userArrowOverlay = null;
 
-    function initMap() {
-      if (!navigator.geolocation) {
-        alert("Geolocation is not supported by this browser.");
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(pos => {
+  function initMap() {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by this browser.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(pos => {
+      userLatLng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+      map = new kakao.maps.Map(document.getElementById('map'), {
+        center: userLatLng,
+        level: 5
+      });
+
+      createUserArrowMarker(userLatLng, 0);
+      startWatchPosition();
+
+    }, () => {
+      alert("Unable to retrieve your location.");
+    });
+  }
+
+  function createUserArrowMarker(position, heading) {
+    // 커스텀 오버레이 내용: 화살표 div
+    const arrowDiv = document.createElement('div');
+    arrowDiv.className = 'user-arrow-marker';
+    arrowDiv.style.transform = `rotate(${heading}deg)`;
+
+    if(userArrowOverlay) {
+      userArrowOverlay.setMap(null);
+    }
+
+    userArrowOverlay = new kakao.maps.CustomOverlay({
+      position: position,
+      content: arrowDiv,
+      yAnchor: 0.5,
+      xAnchor: 0.5
+    });
+    userArrowOverlay.setMap(map);
+  }
+
+  function updateUserArrowMarker(position, heading) {
+    if (!userArrowOverlay) return;
+
+    userArrowOverlay.setPosition(position);
+    const arrowDiv = userArrowOverlay.getContent();
+    arrowDiv.style.transform = `rotate(${heading}deg)`;
+  }
+
+  function startWatchPosition() {
+    if (!navigator.geolocation) {
+      alert("Geolocation not supported");
+      return;
+    }
+    watchId = navigator.geolocation.watchPosition(
+      (pos) => {
         userLatLng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
-        map = new kakao.maps.Map(document.getElementById('map'), {
-          center: userLatLng,
-          level: 5
-        });
-        userMarker = new kakao.maps.Marker({
-          map,
-          position: userLatLng,
-          title: "Current Location",
-          image: new kakao.maps.MarkerImage(
-            "https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png",
-            new kakao.maps.Size(24, 35)
-          )
-        });
-        startWatchPosition();
-      }, () => {
-        alert("Unable to retrieve your location.");
-      });
+        let heading = 0;
+        // heading이 null 혹은 NaN이면 0도로 초기화
+        if (pos.coords.heading !== null && !isNaN(pos.coords.heading)) {
+          heading = pos.coords.heading;
+        }
+        if(!userArrowOverlay) {
+          createUserArrowMarker(userLatLng, heading);
+        } else {
+          updateUserArrowMarker(userLatLng, heading);
+        }
+      },
+      (err) => {
+        console.error(err);
+      },
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+    );
+  }
+
+  function stopWatchPosition() {
+    if (watchId) {
+      navigator.geolocation.clearWatch(watchId);
+    }
+  }
+
+  function refreshLocation() {
+    if (!userLatLng) {
+      alert("Location not available yet.");
+      return;
+    }
+    map.setCenter(userLatLng);
+    const lang = document.getElementById("language").value;
+    infoDiv.innerHTML = i18n[lang].refresh + " done!";
+  }
+
+  function getDistance(lat1, lng1, lat2, lng2) {
+    function toRad(deg) {
+      return deg * Math.PI / 180;
+    }
+    const R = 6371000; // meters
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return Math.round(R * c);
+  }
+
+  function estimateWalkTime(distanceM) {
+    return Math.round(distanceM / 66.67); // 평균 도보속도 약 4km/h = 66.67m/min
+  }
+
+  function drawHardcodedRoute(pathCoords) {
+    if (polyline) polyline.setMap(null);
+
+    const kakaoCoords = pathCoords.map(p => new kakao.maps.LatLng(p.lat, p.lng));
+
+    polyline = new kakao.maps.Polyline({
+      map: map,
+      path: kakaoCoords,
+      strokeWeight: 5,
+      strokeColor: '#FF5722',
+      strokeOpacity: 0.8,
+      strokeStyle: 'solid'
+    });
+
+    const bounds = new kakao.maps.LatLngBounds();
+    kakaoCoords.forEach(coord => bounds.extend(coord));
+    if(userLatLng) bounds.extend(userLatLng); // 사용자 위치 포함
+
+    map.setBounds(bounds);
+  }
+
+  function setDestination(index) {
+    if (!userLatLng) {
+      alert("Please wait for your current location.");
+      return;
     }
 
-    function startWatchPosition() {
-      if (!navigator.geolocation) {
-        alert("Geolocation not supported");
-        return;
-      }
-      watchId = navigator.geolocation.watchPosition(
-        (pos) => {
-          userLatLng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
-          if (userMarker) userMarker.setPosition(userLatLng);
-          // 지도 중심 자동 이동 원하면 아래 주석 해제
-          // map.setCenter(userLatLng);
-        },
-        (err) => {
-          console.error(err);
-        },
-        { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
-      );
-    }
+    const dest = destinations[index];
+    const destLatLng = new kakao.maps.LatLng(dest.lat, dest.lng);
 
-    function stopWatchPosition() {
-      if (watchId) {
-        navigator.geolocation.clearWatch(watchId);
-      }
-    }
+    if (destMarker) destMarker.setMap(null);
+    if (polyline) polyline.setMap(null);
 
-    function refreshLocation() {
-      if (!userLatLng) {
-        alert("Location not available yet.");
-        return;
-      }
-      map.setCenter(userLatLng);
-      const lang = document.getElementById("language").value;
-      infoDiv.innerHTML = i18n[lang].refresh + " done!";
-    }
+    destMarker = new kakao.maps.Marker({
+      map,
+      position: destLatLng,
+      title: dest.name
+    });
 
-    function getDistance(lat1, lng1, lat2, lng2) {
-      function toRad(deg) {
-        return deg * Math.PI / 180;
-      }
-      const R = 6371000; // meters
-      const dLat = toRad(lat2 - lat1);
-      const dLng = toRad(lng2 - lng1);
-      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return Math.round(R * c);
-    }
+    drawHardcodedRoute(dest.path);
 
-    function estimateWalkTime(distanceM) {
-      return Math.round(distanceM / 66.67);
-    }
+    const distM = getDistance(userLatLng.getLat(), userLatLng.getLng(), dest.lat, dest.lng);
+    const walkTime = estimateWalkTime(distM);
+    const lang = document.getElementById("language").value;
 
-    function drawHardcodedRoute(pathCoords) {
-      if (polyline) polyline.setMap(null);
+    infoDiv.innerHTML = `<strong>${dest.name}</strong><br>${i18n[lang].dist(distM)}<br>${i18n[lang].time(walkTime)}`;
+  }
 
-      const kakaoCoords = pathCoords.map(p => new kakao.maps.LatLng(p.lat, p.lng));
+  function changeLanguage() {
+    const lang = document.getElementById("language").value;
+    document.getElementById("btn0").innerText = i18n[lang].btn0;
+    document.getElementById("btn1").innerText = i18n[lang].btn1;
+    document.getElementById("btn2").innerText = i18n[lang].btn2;
+    document.getElementById("btn3").innerText = i18n[lang].btn3;
+    document.getElementById("refresh").innerText = i18n[lang].refresh;
+    infoDiv.innerHTML = "";
+  }
 
-      polyline = new kakao.maps.Polyline({
-        map: map,
-        path: kakaoCoords,
-        strokeWeight: 5,
-        strokeColor: '#FF5722',
-        strokeOpacity: 0.8,
-        strokeStyle: 'solid'
-      });
-
-      const bounds = new kakao.maps.LatLngBounds();
-      kakaoCoords.forEach(coord => bounds.extend(coord));
-      if(userLatLng) bounds.extend(userLatLng);
-
-      map.setBounds(bounds);
-    }
-
-    function setDestination(index) {
-      if (!userLatLng) {
-        alert("Please wait for your current location.");
-        return;
-      }
-
-      const dest = destinations[index];
-      const destLatLng = new kakao.maps.LatLng(dest.lat, dest.lng);
-
-      if (destMarker) destMarker.setMap(null);
-      if (polyline) polyline.setMap(null);
-
-      destMarker = new kakao.maps.Marker({
-        map,
-        position: destLatLng,
-        title: dest.name
-      });
-
-      drawHardcodedRoute(dest.path);
-
-      const distM = getDistance(userLatLng.getLat(), userLatLng.getLng(), dest.lat, dest.lng);
-      const walkTime = estimateWalkTime(distM);
-      const lang = document.getElementById("language").value;
-
-      infoDiv.innerHTML = `<strong>${dest.name}</strong><br>${i18n[lang].dist(distM)}<br>${i18n[lang].time(walkTime)}`;
-    }
-
-    function changeLanguage() {
-      const lang = document.getElementById("language").value;
-      document.getElementById("btn0").innerText = i18n[lang].btn0;
-      document.getElementById("btn1").innerText = i18n[lang].btn1;
-      document.getElementById("btn2").innerText = i18n[lang].btn2;
-      document.getElementById("btn3").innerText = i18n[lang].btn3;
-      document.getElementById("refresh").innerText = i18n[lang].refresh;
-      infoDiv.innerHTML = "";
-    }
-
-    document.addEventListener("DOMContentLoaded", initMap);
-  </script>
+  document.addEventListener("DOMContentLoaded", initMap);
+</script>
 </body>
 </html>
