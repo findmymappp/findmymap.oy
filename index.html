@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Olive Young Walk Guide with Kakao Walking Route</title>
+  <title>Olive Young Walk Guide with Sequential Permissions</title>
   <style>
     body, html {
       margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
@@ -13,7 +13,7 @@
     }
     #map {
       width: 100%;
-      height: 400px;
+      height: 350px;
       background: #eee;
       border-bottom: 1px solid #ccc;
       flex-shrink: 0;
@@ -41,9 +41,6 @@
       gap: 10px;
       padding: 10px 12px 15px;
       margin-top: 10px;
-      max-width: 500px;
-      margin-left: auto;
-      margin-right: auto;
     }
     button {
       flex: 1 1 45%;
@@ -73,14 +70,29 @@
       color: #333;
       min-height: 32px;
       line-height: 1.3;
-      max-width: 500px;
-      margin: 0 auto 15px;
-      text-align: center;
+    }
+    #permArea {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    #permArea button {
+      background-color: #ff5722;
+      border-radius: 6px;
+      padding: 12px 16px;
+      font-size: 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    #permArea button:hover {
+      background-color: #e64a19;
     }
   </style>
 
-  <!-- 카카오 지도 SDK (길찾기 API 포함) -->
-  <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=7984bae577e26f048c7b8608f9008187&libraries=services"></script>
+  <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=7984bae577e26f048c7b8608f9008187&libraries=services,geometry"></script>
 </head>
 <body>
   <div id="map"></div>
@@ -102,27 +114,53 @@
 
   <div id="info"></div>
 
+  <!-- 권한 요청 영역 -->
+  <div id="permArea">
+    <button id="locBtn">Enable Location</button>
+    <button id="orientBtn" style="display:none;">Enable Orientation</button>
+  </div>
+
   <script>
     const destinations = [
       { 
         name: 'Olive Young DDP History Park 1F', 
         lat: 37.567081, 
-        lng: 127.008034
+        lng: 127.008034,
+        path: [
+          {lat: 37.567081, lng: 127.008034},
+          {lat: 37.567300, lng: 127.008200},
+          {lat: 37.567500, lng: 127.008400}
+        ]
       },
       { 
         name: 'Olive Young Dundun Dongdaemun B2F', 
         lat: 37.565869, 
-        lng: 127.007215
+        lng: 127.007215,
+        path: [
+          {lat: 37.565869, lng: 127.007215},
+          {lat: 37.566000, lng: 127.007300},
+          {lat: 37.566200, lng: 127.007400}
+        ]
       },
       { 
         name: 'Olive Young Doota B2F', 
-        lat: 37.568720, 
-        lng: 127.008003
+        lat: 37.568802, 
+        lng: 127.008967,
+        path: [
+          {lat: 37.568802, lng: 127.008967},
+          {lat: 37.568880, lng: 127.009050},
+          {lat: 37.568900, lng: 127.009100}
+        ]
       },
       { 
         name: 'Olive Young Hyundai City Outlet 2F', 
-        lat: 37.565900, 
-        lng: 127.007400
+        lat: 37.568827, 
+        lng: 127.007956,
+        path: [
+          {lat: 37.568827, lng: 127.007956},
+          {lat: 37.568880, lng: 127.008000},
+          {lat: 37.568930, lng: 127.008050}
+        ]
       }
     ];
 
@@ -169,74 +207,108 @@
       }
     };
 
-    let map, userMarker, destMarker, polyline, userLatLng;
+    let map, userMarker, polyline, userLatLng;
     let currentHeading = null;  // GPS heading
     let deviceHeading = null;   // deviceorientation alpha
     let watchId;
-
     const infoDiv = document.getElementById('info');
+    let userOverlayDiv;
 
-    function initMap() {
+    function startWatchPosition() {
       if (!navigator.geolocation) {
         alert("Geolocation not supported.");
         return;
       }
 
-      navigator.geolocation.getCurrentPosition(pos => {
-        userLatLng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+      watchId = navigator.geolocation.watchPosition(
+        pos => {
+          userLatLng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
 
-        map = new kakao.maps.Map(document.getElementById('map'), {
-          center: userLatLng,
-          level: 5
-        });
+          if (!map) {
+            map = new kakao.maps.Map(document.getElementById('map'), {
+              center: userLatLng,
+              level: 5
+            });
 
-        userMarker = new kakao.maps.Marker({
-          map,
-          position: userLatLng,
-          title: "Current Location",
-          image: new kakao.maps.MarkerImage(
-            "https://cdn-icons-png.flaticon.com/512/447/447031.png",
-            new kakao.maps.Size(32, 32),
-            { anchor: new kakao.maps.Point(16, 16) }
-          ),
-          rotation: 0
-        });
+            userOverlayDiv = document.createElement('div');
+            userOverlayDiv.style.width = '32px';
+            userOverlayDiv.style.height = '32px';
+            userOverlayDiv.style.backgroundImage = 'url(https://cdn-icons-png.flaticon.com/512/447/447031.png)';
+            userOverlayDiv.style.backgroundSize = 'contain';
+            userOverlayDiv.style.backgroundRepeat = 'no-repeat';
+            userOverlayDiv.style.transition = 'transform 0.3s ease';
 
-        startWatchPosition();
-        requestOrientationPermission();
-      }, () => alert("Unable to get location."));
-    }
+            userMarker = new kakao.maps.CustomOverlay({
+              position: userLatLng,
+              content: userOverlayDiv,
+              yAnchor: 0.5,
+              xAnchor: 0.5
+            });
 
-    function startWatchPosition() {
-      watchId = navigator.geolocation.watchPosition(pos => {
-        userLatLng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
-        userMarker.setPosition(userLatLng);
+            userMarker.setMap(map);
+          } else {
+            userMarker.setPosition(userLatLng);
+            map.setCenter(userLatLng);
+          }
 
-        if (pos.coords.heading !== null && !isNaN(pos.coords.heading)) {
-          currentHeading = pos.coords.heading;
-          updateMarkerRotation(currentHeading);
-        } else if (deviceHeading !== null) {
-          updateMarkerRotation(deviceHeading);
+          if (pos.coords.heading !== null && !isNaN(pos.coords.heading)) {
+            currentHeading = pos.coords.heading;
+            updateMarkerRotation(currentHeading);
+          } else if (deviceHeading !== null) {
+            updateMarkerRotation(deviceHeading);
+          }
+        },
+        error => {
+          console.error("watchPosition error:", error);
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              alert("Location permission denied.");
+              break;
+            case error.POSITION_UNAVAILABLE:
+              alert("Location information is unavailable.");
+              break;
+            case error.TIMEOUT:
+              alert("Location request timed out.");
+              break;
+            default:
+              alert("Unknown location error.");
+              break;
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 10000
         }
-      }, err => console.error(err), { enableHighAccuracy: true, maximumAge: 2000, timeout: 5000 });
+      );
     }
 
     function updateMarkerRotation(angle) {
-      userMarker.setRotation(angle);
+      if (!userOverlayDiv) return;
+      userOverlayDiv.style.transform = `rotate(${angle}deg)`;
     }
 
     function requestOrientationPermission() {
-      if (typeof DeviceOrientationEvent !== 'undefined' &&
+      if (typeof DeviceOrientationEvent !== 'undefined' && 
           typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission()
           .then(response => {
             if (response === 'granted') {
+              alert("Orientation permission granted. You can now rotate your device.");
               window.addEventListener('deviceorientation', onDeviceOrientation);
+              document.getElementById('orientBtn').style.display = 'none';
+              document.getElementById('permArea').style.display = 'none';
+            } else {
+              alert("Orientation permission denied.");
             }
           })
-          .catch(console.error);
+          .catch(err => {
+            console.error("DeviceOrientation permission error:", err);
+          });
       } else {
         window.addEventListener('deviceorientation', onDeviceOrientation);
+        document.getElementById('orientBtn').style.display = 'none';
+        document.getElementById('permArea').style.display = 'none';
       }
     }
 
@@ -265,7 +337,26 @@
       return Math.round(distanceM / 66.67);
     }
 
-    const walkingService = new kakao.maps.services.WalkingRoute();
+    function drawHardcodedRoute(pathCoords) {
+      if (polyline) polyline.setMap(null);
+
+      const kakaoCoords = pathCoords.map(p => new kakao.maps.LatLng(p.lat, p.lng));
+
+      polyline = new kakao.maps.Polyline({
+        map: map,
+        path: kakaoCoords,
+        strokeWeight: 5,
+        strokeColor: '#FF5722',
+        strokeOpacity: 0.8,
+        strokeStyle: 'solid'
+      });
+
+      const bounds = new kakao.maps.LatLngBounds();
+      kakaoCoords.forEach(coord => bounds.extend(coord));
+      if(userLatLng) bounds.extend(userLatLng);
+
+      map.setBounds(bounds);
+    }
 
     function setDestination(index) {
       if (!userLatLng) {
@@ -276,70 +367,22 @@
       const dest = destinations[index];
       const destLatLng = new kakao.maps.LatLng(dest.lat, dest.lng);
 
-      if (destMarker) destMarker.setMap(null);
       if (polyline) polyline.setMap(null);
+      if (window.destMarker) window.destMarker.setMap(null);
 
-      destMarker = new kakao.maps.Marker({
+      window.destMarker = new kakao.maps.Marker({
         map,
         position: destLatLng,
         title: dest.name
       });
 
-      try {
-        walkingService.route(
-          new kakao.maps.services.LatLng(userLatLng.getLat(), userLatLng.getLng()),
-          destLatLng,
-          (result, status) => {
-            try {
-              if (status === kakao.maps.services.Status.OK) {
-                displayRoute(result);
-                const distM = getDistance(userLatLng.getLat(), userLatLng.getLng(), dest.lat, dest.lng);
-                const walkTime = estimateWalkTime(distM);
-                const lang = document.getElementById("language").value;
+      drawHardcodedRoute(dest.path);
 
-                infoDiv.innerHTML = `<strong>${dest.name}</strong><br>${i18n[lang].dist(distM)}<br>${i18n[lang].time(walkTime)}`;
-              } else {
-                const lang = document.getElementById("language").value;
-                infoDiv.innerHTML = `<strong>${dest.name}</strong><br><em>${i18n[lang].walkingNotFound}</em>`;
-              }
-            } catch(e) {
-              console.error("Walking route callback error:", e);
-              infoDiv.innerHTML = "Error fetching route.";
-            }
-          }
-        );
-      } catch(e) {
-        console.error("walkingService.route error:", e);
-      }
-    }
+      const distM = getDistance(userLatLng.getLat(), userLatLng.getLng(), dest.lat, dest.lng);
+      const walkTime = estimateWalkTime(distM);
+      const lang = document.getElementById("language").value;
 
-    function displayRoute(routes) {
-      if (!routes || routes.length === 0) return;
-
-      if(polyline) polyline.setMap(null);
-
-      const path = [];
-      routes.forEach(route => {
-        if (route.path && route.path.length > 0) {
-          route.path.forEach(latlng => path.push(latlng));
-        }
-      });
-
-      if (path.length === 0) return;
-
-      polyline = new kakao.maps.Polyline({
-        path: path,
-        strokeWeight: 5,
-        strokeColor: '#FF5722',
-        strokeOpacity: 0.8,
-        strokeStyle: 'solid',
-        map: map
-      });
-
-      const bounds = new kakao.maps.LatLngBounds();
-      path.forEach(latlng => bounds.extend(latlng));
-      if(userLatLng) bounds.extend(userLatLng);
-      map.setBounds(bounds);
+      infoDiv.innerHTML = `<strong>${dest.name}</strong><br>${i18n[lang].dist(distM)}<br>${i18n[lang].time(walkTime)}`;
     }
 
     function refreshLocation() {
@@ -362,7 +405,29 @@
       infoDiv.innerHTML = "";
     }
 
-    document.addEventListener("DOMContentLoaded", initMap);
+    // 버튼 이벤트 연결
+    document.getElementById('locBtn').addEventListener('click', () => {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          alert('Location permission granted!');
+          document.getElementById('locBtn').style.display = 'none';
+          document.getElementById('orientBtn').style.display = 'inline-block';
+          startWatchPosition();
+        },
+        err => {
+          alert('Location permission denied or error.');
+        }
+      );
+    });
+
+    document.getElementById('orientBtn').addEventListener('click', () => {
+      requestOrientationPermission();
+    });
+
+    // 페이지 로드 시 언어 세팅
+    document.addEventListener("DOMContentLoaded", () => {
+      changeLanguage();
+    });
   </script>
 </body>
 </html>
