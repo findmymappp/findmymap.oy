@@ -3,28 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Olive Young Walk Guide</title>
+  <title>Olive Young Walk Guide with Orientation</title>
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    body, html {
+      margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+        Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
       background: #f5f5f5;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-      position: relative;
+      display: flex; flex-direction: column; min-height: 100vh; position: relative;
     }
-
     #map {
       width: 100%;
       height: 350px;
       background: #eee;
       border-bottom: 1px solid #ccc;
       flex-shrink: 0;
-      z-index: 1;
     }
-
     #language {
       position: fixed;
       top: 12px;
@@ -35,12 +28,13 @@
       border-radius: 6px;
       border: 1px solid #ccc;
       background-color: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
       width: 160px;
       appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
       cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
-
     .buttons {
       display: flex;
       flex-wrap: wrap;
@@ -48,7 +42,6 @@
       padding: 10px 12px 15px;
       margin-top: 10px;
     }
-
     button {
       flex: 1 1 45%;
       background-color: #4caf50;
@@ -61,34 +54,22 @@
       transition: background-color 0.3s ease;
       min-width: 120px;
     }
-
     button:hover {
       background-color: #388e3c;
     }
-
     #refresh {
       background-color: #2196f3;
       flex: 1 1 100%;
     }
-
     #refresh:hover {
       background-color: #1565c0;
     }
-
     #info {
       padding: 0 12px 15px;
       font-size: 14px;
       color: #333;
       min-height: 32px;
       line-height: 1.3;
-    }
-
-    .user-arrow-marker {
-      width: 32px;
-      height: 32px;
-      background-image: url('https://cdn-icons-png.flaticon.com/512/447/447031.png');
-      background-size: cover;
-      transform-origin: center;
     }
   </style>
 
@@ -104,7 +85,7 @@
     <option value="ja">🇯🇵 日本語</option>
   </select>
 
-  <div class="buttons">
+  <div class="buttons" id="buttons">
     <button onclick="setDestination(0)" id="btn0">Olive Young DDP History Park 1F</button>
     <button onclick="setDestination(1)" id="btn1">Olive Young Dundun Dongdaemun B2F</button>
     <button onclick="setDestination(2)" id="btn2">Olive Young Doota B2F</button>
@@ -116,10 +97,46 @@
 
   <script>
     const destinations = [
-      { name: 'Olive Young DDP History Park 1F', lat: 37.567081, lng: 127.008034 },
-      { name: 'Olive Young Dundun Dongdaemun B2F', lat: 37.565869, lng: 127.007215 },
-      { name: 'Olive Young Doota B2F', lat: 37.568779, lng: 127.008892 },
-      { name: 'Olive Young Hyundai City Outlet 2F', lat: 37.568720, lng: 127.008003 }
+      { 
+        name: 'Olive Young DDP History Park 1F', 
+        lat: 37.567081, 
+        lng: 127.008034,
+        path: [
+          {lat: 37.567081, lng: 127.008034},
+          {lat: 37.567300, lng: 127.008200},
+          {lat: 37.567500, lng: 127.008400}
+        ]
+      },
+      { 
+        name: 'Olive Young Dundun Dongdaemun B2F', 
+        lat: 37.565869, 
+        lng: 127.007215,
+        path: [
+          {lat: 37.565869, lng: 127.007215},
+          {lat: 37.566000, lng: 127.007300},
+          {lat: 37.566200, lng: 127.007400}
+        ]
+      },
+      { 
+        name: 'Olive Young Doota B2F', 
+        lat: 37.568720, 
+        lng: 127.008003,
+        path: [
+          {lat: 37.568720, lng: 127.008003},
+          {lat: 37.568800, lng: 127.008100},
+          {lat: 37.568900, lng: 127.008200}
+        ]
+      },
+      { 
+        name: 'Olive Young Hyundai City Outlet 2F', 
+        lat: 37.565900, 
+        lng: 127.007400,
+        path: [
+          {lat: 37.565900, lng: 127.007400},
+          {lat: 37.566000, lng: 127.007500},
+          {lat: 37.566100, lng: 127.007600}
+        ]
+      }
     ];
 
     const i18n = {
@@ -138,17 +155,17 @@
         btn0: '올리브영 동대문역사문화공원역점 1F',
         btn1: '올리브영 던던동대문점 B2F',
         btn2: '올리브영 두타점 B2F',
-        btn3: '올리브영 현대시티아울렛점 2F',
+        btn3: '올리브영 현대시티아울렛동대문점 2F',
         time: t => `도보 시간: 약 ${t}분`,
         dist: d => `거리: ${d} m`,
         walkingNotFound: '도보 경로를 찾을 수 없습니다.'
       },
       zh: {
         refresh: '刷新当前位置',
-        btn0: 'Olive Young 东大门历史文化公园 1F',
-        btn1: 'Olive Young 敦敦东大门 B2F',
-        btn2: 'Olive Young Doota B2F',
-        btn3: 'Olive Young 现代城市奥特莱斯 2F',
+        btn0: 'Olive Young 东大门历史文化公园店 1F',
+        btn1: 'Olive Young 敦敦东大门店 B2F',
+        btn2: 'Olive Young Doota店 B2F',
+        btn3: 'Olive Young 现代城市奥特莱斯店 2F',
         time: t => `步行时间：约${t}分钟`,
         dist: d => `距离：${d} 米`,
         walkingNotFound: '无法找到步行路线。'
@@ -165,71 +182,129 @@
       }
     };
 
-    let map, userLatLng, userMarker, destMarker, polyline;
-    let watchId = null;
-    let heading = 0;
-    const infoDiv = document.getElementById("info");
+    let map, userMarker, destMarker, polyline, userLatLng;
+    let currentHeading = null;  // GPS heading
+    let deviceHeading = null;   // deviceorientation alpha
+    let watchId;
+
+    const infoDiv = document.getElementById('info');
 
     function initMap() {
+      if (!navigator.geolocation) {
+        alert("Geolocation not supported.");
+        return;
+      }
+
       navigator.geolocation.getCurrentPosition(pos => {
         userLatLng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+
         map = new kakao.maps.Map(document.getElementById('map'), {
           center: userLatLng,
-          level: 4
+          level: 5
         });
 
-        const markerContent = document.createElement('div');
-        markerContent.className = 'user-arrow-marker';
-
-        userMarker = new kakao.maps.CustomOverlay({
+        userMarker = new kakao.maps.Marker({
           map,
           position: userLatLng,
-          content: markerContent,
-          yAnchor: 1
+          title: "Current Location",
+          image: new kakao.maps.MarkerImage(
+            "https://cdn-icons-png.flaticon.com/512/447/447031.png",
+            new kakao.maps.Size(32, 32),
+            { anchor: new kakao.maps.Point(16, 16) }
+          ),
+          rotation: 0
         });
 
-        watchUserPosition(markerContent);
-      });
+        startWatchPosition();
+        requestOrientationPermission();
+      }, () => alert("Unable to get location."));
     }
 
-    function watchUserPosition(markerContent) {
-      if (!navigator.geolocation) return;
+    function startWatchPosition() {
+      watchId = navigator.geolocation.watchPosition(pos => {
+        userLatLng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+        userMarker.setPosition(userLatLng);
 
-      watchId = navigator.geolocation.watchPosition(
-        pos => {
-          userLatLng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
-          if (userMarker) userMarker.setPosition(userLatLng);
-
-          if (pos.coords.heading !== undefined && !isNaN(pos.coords.heading)) {
-            heading = pos.coords.heading;
-            markerContent.style.transform = `rotate(${heading}deg)`;
-          }
-        },
-        err => console.error(err),
-        { enableHighAccuracy: true, maximumAge: 5000, timeout: 7000 }
-      );
+        if (pos.coords.heading !== null && !isNaN(pos.coords.heading)) {
+          currentHeading = pos.coords.heading;
+          updateMarkerRotation(currentHeading);
+        } else if (deviceHeading !== null) {
+          updateMarkerRotation(deviceHeading);
+        }
+      }, err => console.error(err), { enableHighAccuracy: true });
     }
 
-    function refreshLocation() {
-      if (userLatLng) map.setCenter(userLatLng);
-      const lang = document.getElementById("language").value;
-      infoDiv.innerHTML = i18n[lang].refresh + " ✅";
+    function updateMarkerRotation(angle) {
+      userMarker.setRotation(angle);
+    }
+
+    function requestOrientationPermission() {
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+          .then(response => {
+            if (response === 'granted') {
+              window.addEventListener('deviceorientation', onDeviceOrientation);
+            }
+          })
+          .catch(console.error);
+      } else {
+        window.addEventListener('deviceorientation', onDeviceOrientation);
+      }
+    }
+
+    function onDeviceOrientation(event) {
+      if (event.alpha !== null) {
+        deviceHeading = 360 - event.alpha; // 보정
+        if (currentHeading === null || isNaN(currentHeading)) {
+          updateMarkerRotation(deviceHeading);
+        }
+      }
     }
 
     function getDistance(lat1, lng1, lat2, lng2) {
-      function toRad(deg) { return deg * Math.PI / 180; }
-      const R = 6371000;
+      function toRad(deg) {
+        return deg * Math.PI / 180;
+      }
+      const R = 6371000; // meters
       const dLat = toRad(lat2 - lat1);
       const dLng = toRad(lng2 - lng1);
       const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
-      return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return Math.round(R * c);
     }
 
-    function estimateWalkTime(meters) {
-      return Math.round(meters / 66.67);
+    function estimateWalkTime(distanceM) {
+      return Math.round(distanceM / 66.67);
+    }
+
+    function drawHardcodedRoute(pathCoords) {
+      if (polyline) polyline.setMap(null);
+
+      const kakaoCoords = pathCoords.map(p => new kakao.maps.LatLng(p.lat, p.lng));
+
+      polyline = new kakao.maps.Polyline({
+        map: map,
+        path: kakaoCoords,
+        strokeWeight: 5,
+        strokeColor: '#FF5722',
+        strokeOpacity: 0.8,
+        strokeStyle: 'solid'
+      });
+
+      const bounds = new kakao.maps.LatLngBounds();
+      kakaoCoords.forEach(coord => bounds.extend(coord));
+      if(userLatLng) bounds.extend(userLatLng);
+
+      map.setBounds(bounds);
     }
 
     function setDestination(index) {
+      if (!userLatLng) {
+        alert("Please wait for your current location.");
+        return;
+      }
+
       const dest = destinations[index];
       const destLatLng = new kakao.maps.LatLng(dest.lat, dest.lng);
 
@@ -242,25 +317,23 @@
         title: dest.name
       });
 
-      const linePath = [userLatLng, destLatLng];
-      polyline = new kakao.maps.Polyline({
-        path: linePath,
-        strokeWeight: 5,
-        strokeColor: '#FF5722',
-        strokeOpacity: 0.8,
-        strokeStyle: 'solid',
-        map
-      });
+      drawHardcodedRoute(dest.path);
 
-      const bounds = new kakao.maps.LatLngBounds();
-      linePath.forEach(p => bounds.extend(p));
-      map.setBounds(bounds);
-
-      const dist = getDistance(userLatLng.getLat(), userLatLng.getLng(), dest.lat, dest.lng);
-      const time = estimateWalkTime(dist);
+      const distM = getDistance(userLatLng.getLat(), userLatLng.getLng(), dest.lat, dest.lng);
+      const walkTime = estimateWalkTime(distM);
       const lang = document.getElementById("language").value;
 
-      infoDiv.innerHTML = `<strong>${dest.name}</strong><br>${i18n[lang].dist(dist)}<br>${i18n[lang].time(time)}`;
+      infoDiv.innerHTML = `<strong>${dest.name}</strong><br>${i18n[lang].dist(distM)}<br>${i18n[lang].time(walkTime)}`;
+    }
+
+    function refreshLocation() {
+      if (!userLatLng) {
+        alert("Location not available yet.");
+        return;
+      }
+      map.setCenter(userLatLng);
+      const lang = document.getElementById("language").value;
+      infoDiv.innerHTML = i18n[lang].refresh + " done!";
     }
 
     function changeLanguage() {
